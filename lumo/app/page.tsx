@@ -105,9 +105,9 @@ export default function Home() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen overflow-hidden">
+    <div className="flex flex-col min-h-screen overflow-hidden pt-16">
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] mt-20 flex flex-col items-center justify-center py-12 px-4">
+      <section className="relative min-h-[90vh] flex flex-col items-center justify-center py-12 px-4">
         {/* Enhanced background elements */}
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div
@@ -244,11 +244,11 @@ export default function Home() {
         {/* <div className="absolute inset-0 bg-gradient-to-b from-background via-background/50 to-background" /> */}
 
         <div className="max-w-6xl mx-auto">
-          <motion.div className="text-center mb-16 space-y-4 text-white ">
+          <motion.div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl font-bold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent dark:text-primary/90">
               How Aura Helps You
             </h2>
-            <p className="text-foreground dark:text-foreground/95 max-w-2xl mx-auto font-medium text-lg">
+            <p className="text-muted-foreground max-w-2xl mx-auto font-medium text-lg">
               Experience a new kind of emotional support, powered by empathetic
               AI
             </p>
@@ -263,7 +263,7 @@ export default function Home() {
                 transition={{ delay: feature.delay, duration: 0.5 }}
                 viewport={{ once: true }}
               >
-                <Card className="group relative overflow-hidden border border-primary/10 hover:border-primary/20 transition-all duration-300 h-[200px] bg-card/30 dark:bg-card/80 backdrop-blur-sm">
+                <Card className="group relative overflow-hidden border border-border hover:border-primary/20 transition-all duration-300 h-[200px] bg-card backdrop-blur-sm">
                   <div
                     className={`absolute inset-0 bg-gradient-to-br ${feature.color} to-transparent opacity-0 group-hover:opacity-20 transition-opacity duration-500 dark:group-hover:opacity-30`}
                   />
@@ -272,13 +272,13 @@ export default function Home() {
                       <div className="p-2 rounded-xl bg-primary/10 dark:bg-primary/20 group-hover:bg-primary/20 dark:group-hover:bg-primary/30 transition-colors duration-300">
                         <feature.icon className="w-5 h-5 text-primary dark:text-primary/90" />
                       </div>
-                      <h3 className="font-semibold tracking-tight text-foreground/90 dark:text-foreground">
+                      <h3 className="font-semibold tracking-tight text-foreground">
                         {feature.title}
                       </h3>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground/90 dark:text-muted-foreground leading-relaxed">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {feature.description}
                     </p>
                   </CardContent>
@@ -291,7 +291,7 @@ export default function Home() {
       </section>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-[425px] bg-card/80 backdrop-blur-lg">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <motion.div
               key={currentStep}
