@@ -1,9 +1,3 @@
-
-@import "tw-animate-css";
-
-@custom-variant dark (&:is(.dark *));
-
-/* stylelint-disable at-rule-no-unknown */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -91,7 +85,6 @@
     @apply bg-background text-foreground;
   }
 }
-/* stylelint-enable at-rule-no-unknown */
 
 /* Add some calming animations */
 .hover-lift {
@@ -207,26 +200,5 @@
 
   .gentle-shadow:hover {
     box-shadow: 0 8px 30px -2px rgba(0, 0, 0, 0.15);
-  }
-}
-
-@theme inline {
-  --animate-ripple: ripple var(--duration,2s) ease calc(var(--i, 0)*.2s) infinite;
-  @keyframes ripple {
-  0%, 100% {
-    transform: translate(-50%, -50%) scale(1);
-    }
-  50% {
-    transform: translate(-50%, -50%) scale(0.9);
-    }
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
   }
 }

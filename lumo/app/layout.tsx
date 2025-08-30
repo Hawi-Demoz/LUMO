@@ -5,7 +5,7 @@ import "./globals.css";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/toaster";
-import { Providers } from "@/components/provider";
+import { Providers } from "@/components/providers";
 
 // Initialize the fonts
 const inter = Inter({

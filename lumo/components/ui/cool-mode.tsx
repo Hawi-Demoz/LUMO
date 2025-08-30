@@ -226,7 +226,7 @@ interface CoolModeProps {
 }
 
 export const CoolMode: React.FC<CoolModeProps> = ({ children, options }) => {
-  const ref = useRef<HTMLSpanElement>(null);
+  const ref = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (ref.current) {
@@ -234,5 +234,5 @@ export const CoolMode: React.FC<CoolModeProps> = ({ children, options }) => {
     }
   }, [options]);
 
-  return <span ref={ref}>{children}</span>;
+  return React.cloneElement(children as React.ReactElement, { ref });
 };
