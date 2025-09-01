@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
 import { serve } from "inngest/express";
 import { errorHandler } from "./middleware/errorHandler";
 import { logger } from "./utils/logger";
@@ -13,6 +13,13 @@ import activityRouter from "./routes/activity";
 import { connectDB } from "./utils/db";
 import { inngest } from "./inngest/client";
 import { functions as inngestFunctions } from "./inngest/functions";
+
+// Import models to ensure they're registered with Mongoose
+import "./models/User";
+import "./models/Session";
+import "./models/ChatSession";
+import "./models/Mood";
+import "./models/Activity";
 
 // Load environment variables
 dotenv.config();
@@ -34,7 +41,7 @@ app.use(
 // OnaF6EGHhgYY9OPv
 
 // Routes
-app.get("/health", (_, res) => {
+app.get("/health", (_: any, res: any) => {
   res.json({ status: "ok", message: "Server is running" });
 });
 

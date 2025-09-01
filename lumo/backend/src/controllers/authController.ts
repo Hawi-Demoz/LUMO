@@ -1,8 +1,19 @@
 import { Request, Response } from "express";
 import { User } from "../models/User";
-import { Session } from "../models/Session";
+import mongoose from "mongoose";
 import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
+
+// Get Session model after ensuring it's registered
+const getSessionModel = () => {
+  try {
+    return mongoose.model("Session");
+  } catch {
+    // If model doesn't exist, import and register it
+    const { Session } = require("../models/Session");
+    return Session;
+  }
+};
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -74,6 +85,7 @@ export const login = async (req: Request, res: Response) => {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24); // 24 hours from now
 
+    const Session = getSessionModel();
     const session = new Session({
       userId: user._id,
       token,
@@ -105,6 +117,7 @@ export const logout = async (req: Request, res: Response) => {
   try {
     const token = req.header("Authorization")?.replace("Bearer ", "");
     if (token) {
+      const Session = getSessionModel();
       await Session.deleteOne({ token });
     }
     return res.json({ message: "Logged out successfully" });

@@ -50,7 +50,7 @@ export function LoginForm() {
       </div>
       <div className="flex flex-col space-y-4 text-center text-sm">
         <p className="text-muted-foreground">
-          Don&apos;t have an account?{" "}
+          Don't have an account?{" "}
           <Button
             variant="link"
             className="p-0 text-foreground font-medium hover:text-foreground/80 transition-colors"

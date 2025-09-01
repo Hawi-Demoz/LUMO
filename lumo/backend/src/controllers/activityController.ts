@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { Activity, IActivity } from "../models/Activity";
+import { Activity } from "../models/Activity";
 import { logger } from "../utils/logger";
 import { sendActivityCompletionEvent } from "../utils/inngestEvents";
 
