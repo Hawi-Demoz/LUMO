@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
 import { User } from "../models/User";
 
 // Extend Express Request type to include user
@@ -21,7 +21,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
 
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || "your-secret-key"
+      process.env['JWT_SECRET'] || "your-secret-key"
     ) as any;
     const user = await User.findById(decoded.userId);
 

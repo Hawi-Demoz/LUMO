@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { User } from "../models/User";
 import { Session } from "../models/Session";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import * as bcrypt from "bcryptjs";
+import * as jwt from "jsonwebtoken";
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -23,7 +23,7 @@ export const register = async (req: Request, res: Response) => {
     const user = new User({ name, email, password: hashedPassword });
     await user.save();
     // Respond
-    res.status(201).json({
+    return res.status(201).json({
       user: {
         _id: user._id,
         name: user.name,
@@ -32,7 +32,11 @@ export const register = async (req: Request, res: Response) => {
       message: "User registered successfully.",
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    console.error("Registration error:", error);
+    return res.status(500).json({ 
+      message: "Server error", 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    });
   }
 };
 
@@ -62,7 +66,7 @@ export const login = async (req: Request, res: Response) => {
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET || "your-secret-key",
+      process.env['JWT_SECRET'] || "your-secret-key",
       { expiresIn: "24h" }
     );
 
@@ -79,7 +83,7 @@ export const login = async (req: Request, res: Response) => {
     await session.save();
 
     // Respond with user data and token
-    res.json({
+    return res.json({
       user: {
         _id: user._id,
         name: user.name,
@@ -89,7 +93,11 @@ export const login = async (req: Request, res: Response) => {
       message: "Login successful",
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    console.error("Login error:", error);
+    return res.status(500).json({ 
+      message: "Server error", 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    });
   }
 };
 
@@ -99,8 +107,12 @@ export const logout = async (req: Request, res: Response) => {
     if (token) {
       await Session.deleteOne({ token });
     }
-    res.json({ message: "Logged out successfully" });
+    return res.json({ message: "Logged out successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    console.error("Logout error:", error);
+    return res.status(500).json({ 
+      message: "Server error", 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    });
   }
 };

@@ -1,5 +1,5 @@
 import { inngest } from "./client";
-import { functions as aiFunctions } from "./aiFunctions";
+import { functions as aiFunctions } from "./aifunctions";
 
 // Function to handle therapy session events
 export const therapySessionHandler = inngest.createFunction(

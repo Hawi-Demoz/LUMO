@@ -7,10 +7,11 @@ import { inngest } from "../inngest/client";
 import { User } from "../models/User";
 import { InngestSessionResponse, InngestEvent } from "../types/inngest";
 import { Types } from "mongoose";
+import "../middleware/auth"; // Import to extend Request type
 
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(
-  process.env.GEMINI_API_KEY || "AIzaSyBCBz3wQu9Jjd_icCDZf-17CUO_O8IynwI"
+  process.env['GEMINI_API_KEY'] || "AIzaSyBCBz3wQu9Jjd_icCDZf-17CUO_O8IynwI"
 );
 
 // Create a new chat session

@@ -2,15 +2,15 @@ import mongoose from "mongoose";
 import { logger } from "./logger";
 
 const MONGODB_URI =
-process.env.MONGODB_URI ||
-"mongodb+srv://hawipeter1_db_user:FIgnw2mVRkpIV1aL@lumo.krws5zk.mongodb.net/?retryWrites=true&w=majority&appName=lumo";
+process.env['MONGODB_URI'] ||
+"mongodb://127.0.0.1:27017/lumo";
 
 export const connectDB = async () => {
   try {
     await mongoose.connect(MONGODB_URI);
-    logger.info("Connected to MongoDB Atlas");
+    logger.info("Connected to MongoDB");
   } catch (error) {
     logger.error("MongoDB connection error:", error);
-    process.exit(1);
+    // Do not exit in dev; allow server to start so health/checks work
   }
 };
