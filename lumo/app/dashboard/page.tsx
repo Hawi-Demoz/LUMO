@@ -19,6 +19,7 @@ import {
   ArrowRight,
   X,
   Loader2,
+  BookOpen,
 } from "lucide-react";
 import {
   Card,
@@ -472,8 +473,8 @@ export default function Dashboard() {
     }
   };
 
-  const handleAICheckIn = () => {
-    setShowActivityLogger(true);
+  const handleMoodJournaling = () => {
+    setShowCheckInChat(true);
   };
 
   // Add handler for game activities
@@ -611,15 +612,15 @@ export default function Dashboard() {
                           "justify-center items-center text-center",
                           "transition-all duration-200 group-hover:translate-y-[-2px]"
                         )}
-                        onClick={handleAICheckIn}
+                        onClick={handleMoodJournaling}
                       >
-                        <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-2">
-                          <BrainCircuit className="w-5 h-5 text-blue-500" />
+                        <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center mb-2">
+                          <BookOpen className="w-5 h-5 text-purple-500" />
                         </div>
                         <div>
-                          <div className="font-medium text-sm">Check-in</div>
+                          <div className="font-medium text-sm">Mood Journal</div>
                           <div className="text-xs text-muted-foreground mt-0.5">
-                            Quick wellness check
+                            Express your feelings
                           </div>
                         </div>
                       </Button>
@@ -750,26 +751,83 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* AI check-in chat */}
-      {showCheckInChat && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50">
-          <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-background border-l shadow-lg">
-            <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between px-4 py-3 border-b">
-                <h3 className="font-semibold">AI Check-in</h3>
+      {/* Mood Journaling Modal */}
+      <Dialog open={showCheckInChat} onOpenChange={setShowCheckInChat}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5" />
+              Mood Journaling
+            </DialogTitle>
+            <DialogDescription>
+              Take a moment to reflect on your day and express your feelings
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 p-6">
+            <div className="text-center">
+              <BookOpen className="w-16 h-16 text-purple-500 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold mb-2">Mood Journaling</h3>
+              <p className="text-muted-foreground">
+                Take a moment to reflect on your day and express your feelings
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="mood-rating" className="text-base font-medium">
+                  How are you feeling today? (1-10)
+                </label>
+                <div className="flex items-center gap-4 mt-2">
+                  <span className="text-sm text-muted-foreground">😢</span>
+                  <input
+                    type="range"
+                    id="mood-rating"
+                    min="1"
+                    max="10"
+                    defaultValue="5"
+                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                  <span className="text-sm text-muted-foreground">😊</span>
+                  <span className="text-lg font-semibold text-purple-600 w-8 text-center">
+                    5
+                  </span>
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="journal-entry" className="text-base font-medium">
+                  What's on your mind today?
+                </label>
+                <textarea
+                  id="journal-entry"
+                  placeholder="Write about your thoughts, feelings, or anything that's been on your mind..."
+                  className="mt-2 min-h-[200px] w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Tip: Use words like "happy", "sad", "anxious", "peaceful" to get better emotion analysis
+                </p>
+              </div>
+              
+              <div className="flex gap-3 pt-4">
                 <Button
-                  variant="ghost"
-                  size="icon"
                   onClick={() => setShowCheckInChat(false)}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
                 >
-                  <X className="w-4 h-4" />
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Save Entry
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCheckInChat(false)}
+                  className="flex-1"
+                >
+                  Cancel
                 </Button>
               </div>
-              <div className="flex-1 overflow-y-auto p-4"></div>
             </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       <ActivityLogger
         open={showActivityLogger}

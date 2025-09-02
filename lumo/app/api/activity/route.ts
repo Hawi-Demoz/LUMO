@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   const API_URL =
     process.env.BACKEND_API_URL ||
-    "https://luma.onrender.com";
+    "http://localhost:3000";
   const token = req.headers.get("Authorization");
 
   if (!token) {

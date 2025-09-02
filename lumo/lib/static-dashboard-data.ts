@@ -201,20 +201,39 @@ export const logActivity = async (data: {
   description?: string;
   duration?: number;
 }) => {
-  const newActivity = {
-    id: Math.random().toString(36).substr(2, 9),
-    userId: data.userId,
-    type: data.type,
-    name: data.name,
-    description: data.description || "",
-    timestamp: new Date(),
-    duration: data.duration || 0,
-    completed: false,
-    moodScore: 0,
-    moodNote: "",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-  staticActivities.push(newActivity);
-  return newActivity;
+  try {
+    const newActivity = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: data.userId,
+      type: data.type,
+      name: data.name,
+      description: data.description || "",
+      timestamp: new Date(),
+      duration: data.duration || 0,
+      completed: true,
+      moodScore: null,
+      moodNote: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    staticActivities.push(newActivity);
+    return newActivity;
+  } catch (error) {
+    console.error("Error logging activity:", error);
+    // Return a default activity to prevent crashes
+    return {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: data.userId,
+      type: data.type,
+      name: data.name,
+      description: data.description || "",
+      timestamp: new Date(),
+      duration: data.duration || 0,
+      completed: true,
+      moodScore: null,
+      moodNote: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
 };

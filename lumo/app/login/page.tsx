@@ -13,7 +13,7 @@ import { useSession } from "@/lib/contexts/session-context";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { checkSession } = useSession();
+  const { checkSession, loginWithFallback } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -24,17 +24,29 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await loginUser(email, password);
-
-      // Store the token in localStorage
-      localStorage.setItem("token", response.token);
-
-      // Update session state
-      await checkSession();
-
-      // Wait for state to update before redirecting
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      router.push("/dashboard");
+      // Try fallback authentication first
+      const success = await loginWithFallback(email, password);
+      
+      if (success) {
+        // Wait for state to update before redirecting
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        router.push("/dashboard");
+      } else {
+        // Try regular login as fallback
+        try {
+          const response = await loginUser(email, password);
+          localStorage.setItem("token", response.token);
+          await checkSession();
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          router.push("/dashboard");
+        } catch (err) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Invalid email or password. Please try again."
+          );
+        }
+      }
     } catch (err) {
       setError(
         err instanceof Error

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_API_URL =
   process.env.BACKEND_API_URL ||
-  "https://ai-therapist-agent-backend.onrender.com";
+  "localhost:3000";
 
 export async function GET(
   req: NextRequest,

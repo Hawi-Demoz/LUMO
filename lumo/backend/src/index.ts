@@ -2,7 +2,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import * as dotenv from "dotenv";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
 import { serve } from "inngest/express";
 import { errorHandler } from "./middleware/errorHandler";
 import { logger } from "./utils/logger";
@@ -13,13 +14,6 @@ import activityRouter from "./routes/activity";
 import { connectDB } from "./utils/db";
 import { inngest } from "./inngest/client";
 import { functions as inngestFunctions } from "./inngest/functions";
-
-// Import models to ensure they're registered with Mongoose
-import "./models/User";
-import "./models/Session";
-import "./models/ChatSession";
-import "./models/Mood";
-import "./models/Activity";
 
 // Load environment variables
 dotenv.config();
@@ -41,8 +35,14 @@ app.use(
 // OnaF6EGHhgYY9OPv
 
 // Routes
-app.get("/health", (_: any, res: any) => {
-  res.json({ status: "ok", message: "Server is running" });
+app.get("/health", (req, res) => {
+  const mongoStatus = mongoose.connection.readyState === 1 ? "connected" : "disconnected";
+  res.json({ 
+    status: "ok", 
+    message: "Server is running",
+    mongodb: mongoStatus,
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.use("/auth", authRouter);
@@ -56,16 +56,26 @@ app.use(errorHandler);
 // Start server
 const startServer = async () => {
   try {
-    // Connect to MongoDB first
-    await connectDB();
+    // Try to connect to MongoDB, but don't fail if it doesn't work
+    try {
+      await connectDB();
+    } catch (dbError) {
+      logger.warn("MongoDB connection failed, but server will continue to start");
+      logger.warn("Authentication and database features will not work until MongoDB is available");
+    }
 
-    // Then start the server
+    // Start the server regardless of MongoDB connection
     const PORT = parseInt(process.env['PORT'] || '3001', 10);
     app.listen(PORT, () => {
       logger.info(`Server is running on port ${PORT}`);
       logger.info(
         `Inngest endpoint available at http://localhost:${PORT}/api/inngest`
       );
+      if (mongoose.connection.readyState !== 1) {
+        logger.warn("⚠️  Server started but MongoDB is not connected");
+        logger.warn("⚠️  Authentication and database features will not work");
+        logger.warn("⚠️  To fix: Whitelist your IP in MongoDB Atlas or use local MongoDB");
+      }
     });
   } catch (error) {
     logger.error("Failed to start server:", error);

@@ -4,6 +4,9 @@ import mongoose from "mongoose";
 import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
 
+// Fallback in-memory user store for when MongoDB is not available
+const fallbackUsers = new Map();
+
 // Get Session model after ensuring it's registered
 const getSessionModel = () => {
   try {
@@ -15,6 +18,11 @@ const getSessionModel = () => {
   }
 };
 
+// Check if MongoDB is available
+const isMongoAvailable = () => {
+  return mongoose.connection.readyState === 1;
+};
+
 export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
@@ -23,25 +31,50 @@ export const register = async (req: Request, res: Response) => {
         .status(400)
         .json({ message: "Name, email, and password are required." });
     }
+
     // Check if user exists
-    const existingUser = await User.findOne({ email });
+    let existingUser = null;
+    if (isMongoAvailable()) {
+      existingUser = await User.findOne({ email });
+    } else {
+      existingUser = fallbackUsers.get(email);
+    }
+
     if (existingUser) {
       return res.status(409).json({ message: "Email already in use." });
     }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    // Create user
-    const user = new User({ name, email, password: hashedPassword });
-    await user.save();
-    // Respond
-    return res.status(201).json({
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-      message: "User registered successfully.",
-    });
+    
+    if (isMongoAvailable()) {
+      // Create user in MongoDB
+      const user = new User({ name, email, password: hashedPassword });
+      await user.save();
+      
+      return res.status(201).json({
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+        message: "User registered successfully.",
+      });
+    } else {
+      // Create user in fallback store
+      const userId = Date.now().toString();
+      const user = { _id: userId, name, email, password: hashedPassword };
+      fallbackUsers.set(email, user);
+      
+      return res.status(201).json({
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+        message: "User registered successfully (fallback mode).",
+      });
+    }
   } catch (error) {
     console.error("Registration error:", error);
     return res.status(500).json({ 
@@ -63,7 +96,13 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Find user
-    const user = await User.findOne({ email });
+    let user = null;
+    if (isMongoAvailable()) {
+      user = await User.findOne({ email });
+    } else {
+      user = fallbackUsers.get(email);
+    }
+
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password." });
     }
@@ -81,18 +120,25 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: "24h" }
     );
 
-    // Create session
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24); // 24 hours from now
+    // Create session (only if MongoDB is available)
+    if (isMongoAvailable()) {
+      try {
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24);
 
-    const Session = getSessionModel();
-    const session = new Session({
-      userId: user._id,
-      token,
-      expiresAt,
-      deviceInfo: req.headers["user-agent"],
-    });
-    await session.save();
+        const Session = getSessionModel();
+        const session = new Session({
+          userId: user._id,
+          token,
+          expiresAt,
+          deviceInfo: req.headers["user-agent"],
+        });
+        await session.save();
+      } catch (sessionError) {
+        console.warn("Session creation failed:", sessionError);
+        // Continue without session for now
+      }
+    }
 
     // Respond with user data and token
     return res.json({
@@ -116,9 +162,13 @@ export const login = async (req: Request, res: Response) => {
 export const logout = async (req: Request, res: Response) => {
   try {
     const token = req.header("Authorization")?.replace("Bearer ", "");
-    if (token) {
-      const Session = getSessionModel();
-      await Session.deleteOne({ token });
+    if (token && isMongoAvailable()) {
+      try {
+        const Session = getSessionModel();
+        await Session.deleteOne({ token });
+      } catch (sessionError) {
+        console.warn("Session deletion failed:", sessionError);
+      }
     }
     return res.json({ message: "Logged out successfully" });
   } catch (error) {

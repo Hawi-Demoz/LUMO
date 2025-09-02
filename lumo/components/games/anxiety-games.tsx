@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Gamepad2, Flower2, Wind, TreePine, Waves, Music2, BookOpen, PenTool } from "lucide-react";
+import { Gamepad2, Flower2, Wind, TreePine, Waves, Music2, BookOpen, PenTool, Save, BarChart3 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -23,6 +23,13 @@ import { BreathingGame } from "./breathing-game";
 import { ZenGarden } from "./zen-garden";
 import { ForestGame } from "./forest-game";
 import { OceanWaves } from "./ocean-waves";
+
+// Emotion categories with weights for scoring
+const emotionCategories = {
+  positive: ["happy", "joyful", "excited", "grateful", "peaceful", "content", "optimistic", "energetic"],
+  negative: ["sad", "angry", "anxious", "stressed", "frustrated", "worried", "depressed", "lonely"],
+  neutral: ["calm", "neutral", "tired", "bored", "indifferent", "focused", "curious", "reflective"]
+};
 
 const games = [
   {
@@ -72,6 +79,17 @@ const games = [
   },
 ];
 
+interface JournalEntry {
+  id: string;
+  date: string;
+  moodRating: number;
+  content: string;
+  emotionScore: number;
+  emotionPercentage: number;
+  emotions: string[];
+  timestamp: number;
+}
+
 interface AnxietyGamesProps {
   onGamePlayed?: (gameName: string, description: string) => Promise<void>;
 }
@@ -81,6 +99,65 @@ export const AnxietyGames = ({ onGamePlayed }: AnxietyGamesProps) => {
   const [showGame, setShowGame] = useState(false);
   const [journalEntry, setJournalEntry] = useState("");
   const [moodRating, setMoodRating] = useState(5);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [showJournalHistory, setShowJournalHistory] = useState(false);
+
+  // Load journal entries from localStorage on component mount
+  useEffect(() => {
+    const savedEntries = localStorage.getItem('moodJournalEntries');
+    if (savedEntries) {
+      setJournalEntries(JSON.parse(savedEntries));
+    }
+  }, []);
+
+  // Save journal entries to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('moodJournalEntries', JSON.stringify(journalEntries));
+  }, [journalEntries]);
+
+  // Analyze text for emotions and calculate score
+  const analyzeEmotions = (text: string): { score: number; percentage: number; emotions: string[] } => {
+    const words = text.toLowerCase().split(/\s+/);
+    let positiveCount = 0;
+    let negativeCount = 0;
+    let neutralCount = 0;
+    const foundEmotions: string[] = [];
+
+    words.forEach(word => {
+      if (emotionCategories.positive.includes(word)) {
+        positiveCount++;
+        foundEmotions.push(word);
+      } else if (emotionCategories.negative.includes(word)) {
+        negativeCount++;
+        foundEmotions.push(word);
+      } else if (emotionCategories.neutral.includes(word)) {
+        neutralCount++;
+        foundEmotions.push(word);
+      }
+    });
+
+    // Calculate emotion score (0-100)
+    const totalWords = words.length;
+    if (totalWords === 0) return { score: 50, percentage: 50, emotions: [] };
+
+    const positiveRatio = positiveCount / totalWords;
+    const negativeRatio = negativeCount / totalWords;
+    const neutralRatio = neutralCount / totalWords;
+
+    // Score calculation: positive emotions boost score, negative emotions reduce it
+    let score = 50; // Start at neutral (50)
+    score += (positiveRatio * 50); // Positive emotions can add up to 50 points
+    score -= (negativeRatio * 50); // Negative emotions can subtract up to 50 points
+
+    // Clamp score between 0 and 100
+    score = Math.max(0, Math.min(100, score));
+
+    return {
+      score: Math.round(score),
+      percentage: Math.round(score),
+      emotions: foundEmotions
+    };
+  };
 
   const handleGameStart = async (gameId: string) => {
     setSelectedGame(gameId);
@@ -101,12 +178,30 @@ export const AnxietyGames = ({ onGamePlayed }: AnxietyGamesProps) => {
 
   const handleJournalSave = async () => {
     if (journalEntry.trim()) {
+      // Analyze emotions in the journal entry
+      const emotionAnalysis = analyzeEmotions(journalEntry);
+      
+      // Create new journal entry
+      const newEntry: JournalEntry = {
+        id: Date.now().toString(),
+        date: new Date().toLocaleDateString(),
+        moodRating,
+        content: journalEntry,
+        emotionScore: emotionAnalysis.score,
+        emotionPercentage: emotionAnalysis.percentage,
+        emotions: emotionAnalysis.emotions,
+        timestamp: Date.now()
+      };
+
+      // Add to journal entries
+      setJournalEntries(prev => [newEntry, ...prev]);
+
       // Log the journaling activity
       if (onGamePlayed) {
         try {
           await onGamePlayed(
             "journaling",
-            `Mood journaling session - Rating: ${moodRating}/10`
+            `Mood journaling session - Rating: ${moodRating}/10, Emotion Score: ${emotionAnalysis.score}%`
           );
         } catch (error) {
           console.error("Error logging journaling activity:", error);
@@ -119,6 +214,18 @@ export const AnxietyGames = ({ onGamePlayed }: AnxietyGamesProps) => {
       setShowGame(false);
       setSelectedGame(null);
     }
+  };
+
+  const getEmotionColor = (score: number) => {
+    if (score >= 70) return "text-green-600";
+    if (score >= 40) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getEmotionLabel = (score: number) => {
+    if (score >= 70) return "Positive";
+    if (score >= 40) return "Neutral";
+    return "Negative";
   };
 
   const renderGame = () => {
@@ -176,6 +283,9 @@ export const AnxietyGames = ({ onGamePlayed }: AnxietyGamesProps) => {
                   onChange={(e) => setJournalEntry(e.target.value)}
                   className="mt-2 min-h-[200px] resize-none"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Tip: Use words like "happy", "sad", "anxious", "peaceful" to get better emotion analysis
+                </p>
               </div>
               
               <div className="flex gap-3 pt-4">
@@ -184,7 +294,7 @@ export const AnxietyGames = ({ onGamePlayed }: AnxietyGamesProps) => {
                   disabled={!journalEntry.trim()}
                   className="flex-1 bg-purple-600 hover:bg-purple-700"
                 >
-                  <PenTool className="w-4 h-4 mr-2" />
+                  <Save className="w-4 h-4 mr-2" />
                   Save Entry
                 </Button>
                 <Button
@@ -254,6 +364,20 @@ export const AnxietyGames = ({ onGamePlayed }: AnxietyGamesProps) => {
           ))}
         </div>
 
+        {/* Journal History Button */}
+        {journalEntries.length > 0 && (
+          <div className="mt-6 text-center">
+            <Button
+              variant="outline"
+              onClick={() => setShowJournalHistory(true)}
+              className="gap-2"
+            >
+              <BarChart3 className="w-4 h-4" />
+              View Journal History ({journalEntries.length} entries)
+            </Button>
+          </div>
+        )}
+
         <Dialog open={showGame} onOpenChange={setShowGame}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
@@ -262,6 +386,52 @@ export const AnxietyGames = ({ onGamePlayed }: AnxietyGamesProps) => {
               </DialogTitle>
             </DialogHeader>
             {renderGame()}
+          </DialogContent>
+        </Dialog>
+
+        {/* Journal History Dialog */}
+        <Dialog open={showJournalHistory} onOpenChange={setShowJournalHistory}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                Journal History
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {journalEntries.map((entry) => (
+                <Card key={entry.id} className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          {entry.date}
+                        </span>
+                        <span className="text-sm">
+                          Mood: {entry.moodRating}/10
+                        </span>
+                        <span className={`text-sm font-semibold ${getEmotionColor(entry.emotionScore)}`}>
+                          {getEmotionLabel(entry.emotionScore)} ({entry.emotionPercentage}%)
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">{entry.content}</p>
+                      {entry.emotions.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {entry.emotions.map((emotion, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full"
+                            >
+                              {emotion}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </DialogContent>
         </Dialog>
       </CardContent>
