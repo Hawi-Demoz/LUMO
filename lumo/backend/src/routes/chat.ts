@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createChatSession,
+  getAllChatSessions,
   getChatSession,
   sendMessage,
   getChatHistory,
@@ -14,6 +15,9 @@ router.use(auth);
 
 // Create a new chat session
 router.post("/sessions", createChatSession);
+
+// Get all chat sessions for current user
+router.get("/sessions", getAllChatSessions);
 
 // Get a specific chat session
 router.get("/sessions/:sessionId", getChatSession);

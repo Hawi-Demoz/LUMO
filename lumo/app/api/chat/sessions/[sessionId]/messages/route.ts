@@ -10,8 +10,16 @@ export async function POST(
 ) {
   try {
     const { sessionId } = params;
+    const authHeader = req.headers.get("Authorization");
     const body = await req.json();
     const { message } = body;
+
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: "Authorization header is required" },
+        { status: 401 }
+      );
+    }
 
     if (!message) {
       return NextResponse.json(
@@ -27,6 +35,7 @@ export async function POST(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: authHeader,
         },
         body: JSON.stringify({ message }),
       }
@@ -36,7 +45,7 @@ export async function POST(
       const error = await response.json();
       console.error("Failed to send message:", error);
       return NextResponse.json(
-        { error: error.error || "Failed to send message" },
+        { error: error.error || error.message || "Failed to send message" },
         { status: response.status }
       );
     }

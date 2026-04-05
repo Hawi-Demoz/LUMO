@@ -10,6 +10,15 @@ export async function GET(
 ) {
   try {
     const { sessionId } = params;
+    const authHeader = req.headers.get("Authorization");
+
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: "Authorization header is required" },
+        { status: 401 }
+      );
+    }
+
     console.log(`Getting chat history for session ${sessionId}`);
 
     const response = await fetch(
@@ -18,6 +27,7 @@ export async function GET(
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Authorization: authHeader,
         },
       }
     );
@@ -26,7 +36,7 @@ export async function GET(
       const error = await response.json();
       console.error("Failed to get chat history:", error);
       return NextResponse.json(
-        { error: error.error || "Failed to get chat history" },
+        { error: error.error || error.message || "Failed to get chat history" },
         { status: response.status }
       );
     }

@@ -40,9 +40,16 @@ export interface ApiResponse {
   };
 }
 
-const API_BASE =
-  process.env.BACKEND_API_URL ||
-  "http://localhost:4001";
+const API_BASE = "/api/chat/sessions";
+
+const parseErrorResponse = async (response: Response, fallback: string) => {
+  try {
+    const error = await response.json();
+    return error.error || error.message || fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
@@ -56,15 +63,17 @@ const getAuthHeaders = () => {
 export const createChatSession = async (): Promise<string> => {
   try {
     console.log("Creating new chat session...");
-    const response = await fetch(`${API_BASE}/chat/sessions`, {
+    const response = await fetch(API_BASE, {
       method: "POST",
       headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("Failed to create chat session:", error);
-      throw new Error(error.error || "Failed to create chat session");
+      const message = await parseErrorResponse(
+        response,
+        "Failed to create chat session"
+      );
+      throw new Error(message);
     }
 
     const data = await response.json();
@@ -82,19 +91,15 @@ export const sendChatMessage = async (
 ): Promise<ApiResponse> => {
   try {
     console.log(`Sending message to session ${sessionId}:`, message);
-    const response = await fetch(
-      `${API_BASE}/chat/sessions/${sessionId}/messages`,
-      {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ message }),
-      }
-    );
+    const response = await fetch(`${API_BASE}/${sessionId}/messages`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ message }),
+    });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("Failed to send message:", error);
-      throw new Error(error.error || "Failed to send message");
+      const message = await parseErrorResponse(response, "Failed to send message");
+      throw new Error(message);
     }
 
     const data = await response.json();
@@ -111,17 +116,16 @@ export const getChatHistory = async (
 ): Promise<ChatMessage[]> => {
   try {
     console.log(`Fetching chat history for session ${sessionId}`);
-    const response = await fetch(
-      `${API_BASE}/chat/sessions/${sessionId}/history`,
-      {
-        headers: getAuthHeaders(),
-      }
-    );
+    const response = await fetch(`${API_BASE}/${sessionId}/history`, {
+      headers: getAuthHeaders(),
+    });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("Failed to fetch chat history:", error);
-      throw new Error(error.error || "Failed to fetch chat history");
+      const message = await parseErrorResponse(
+        response,
+        "Failed to fetch chat history"
+      );
+      throw new Error(message);
     }
 
     const data = await response.json();
@@ -148,14 +152,16 @@ export const getChatHistory = async (
 export const getAllChatSessions = async (): Promise<ChatSession[]> => {
   try {
     console.log("Fetching all chat sessions...");
-    const response = await fetch(`${API_BASE}/chat/sessions`, {
+    const response = await fetch(API_BASE, {
       headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error("Failed to fetch chat sessions:", error);
-      throw new Error(error.error || "Failed to fetch chat sessions");
+      const message = await parseErrorResponse(
+        response,
+        "Failed to fetch chat sessions"
+      );
+      throw new Error(message);
     }
 
     const data = await response.json();

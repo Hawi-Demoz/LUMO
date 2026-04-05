@@ -10,8 +10,21 @@ export async function GET(
 ) {
   try {
     const { sessionId } = params;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: "Authorization header is required" },
+        { status: 401 }
+      );
+    }
+
     const response = await fetch(
-      `${BACKEND_API_URL}/chat/sessions/${sessionId}/history`
+      `${BACKEND_API_URL}/chat/sessions/${sessionId}/history`,
+      {
+        headers: {
+          Authorization: authHeader,
+        },
+      }
     );
 
     if (!response.ok) {
@@ -35,7 +48,15 @@ export async function POST(
 ) {
   try {
     const { sessionId } = params;
+    const authHeader = req.headers.get("Authorization");
     const { message } = await req.json();
+
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: "Authorization header is required" },
+        { status: 401 }
+      );
+    }
 
     if (!message) {
       return NextResponse.json(
@@ -50,6 +71,7 @@ export async function POST(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: authHeader,
         },
         body: JSON.stringify({ message }),
       }

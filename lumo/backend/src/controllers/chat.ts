@@ -9,6 +9,19 @@ import { InngestSessionResponse, InngestEvent } from "../types/inngest";
 import { Types } from "mongoose";
 import "../middleware/auth"; // Import to extend Request type
 
+const getRequestUserId = (req: Request): string | null => {
+  if (!req.user) return null;
+
+  const userAny = req.user as any;
+  if (typeof userAny.id === "string" && userAny.id) return userAny.id;
+  if (typeof userAny._id === "string" && userAny._id) return userAny._id;
+  if (userAny._id && typeof userAny._id.toString === "function") {
+    return userAny._id.toString();
+  }
+
+  return null;
+};
+
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(
   process.env['GEMINI_API_KEY'] || "AIzaSyBCBz3wQu9Jjd_icCDZf-17CUO_O8IynwI"
@@ -17,14 +30,14 @@ const genAI = new GoogleGenerativeAI(
 // Create a new chat session
 export const createChatSession = async (req: Request, res: Response) => {
   try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.id) {
+    const rawUserId = getRequestUserId(req);
+    if (!rawUserId || !Types.ObjectId.isValid(rawUserId)) {
       return res
         .status(401)
         .json({ message: "Unauthorized - User not authenticated" });
     }
 
-    const userId = new Types.ObjectId(req.user.id);
+    const userId = new Types.ObjectId(rawUserId);
     const user = await User.findById(userId);
 
     if (!user) {
@@ -57,12 +70,45 @@ export const createChatSession = async (req: Request, res: Response) => {
   }
 };
 
+export const getAllChatSessions = async (req: Request, res: Response) => {
+  try {
+    const rawUserId = getRequestUserId(req);
+    if (!rawUserId || !Types.ObjectId.isValid(rawUserId)) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userId = new Types.ObjectId(rawUserId);
+    const sessions = await ChatSession.find({ userId }).sort({ startTime: -1 }).lean();
+
+    const normalized = sessions.map((session: any) => ({
+      sessionId: session.sessionId,
+      messages: session.messages || [],
+      createdAt: session.startTime,
+      updatedAt:
+        session.messages && session.messages.length > 0
+          ? session.messages[session.messages.length - 1].timestamp
+          : session.startTime,
+      status: session.status,
+    }));
+
+    res.json(normalized);
+  } catch (error) {
+    logger.error("Error fetching chat sessions:", error);
+    res.status(500).json({ message: "Error fetching chat sessions" });
+  }
+};
+
 // Send a message in the chat session
 export const sendMessage = async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
     const { message } = req.body;
-    const userId = new Types.ObjectId(req.user.id);
+    const rawUserId = getRequestUserId(req);
+    if (!rawUserId || !Types.ObjectId.isValid(rawUserId)) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userId = new Types.ObjectId(rawUserId);
 
     logger.info("Processing message:", { sessionId, message });
 
@@ -110,55 +156,68 @@ export const sendMessage = async (req: Request, res: Response) => {
     // Send event to Inngest for logging and analytics
     await inngest.send(event);
 
-    // Process the message directly using Gemini
+    // Process with Gemini, but gracefully fall back if the model is unavailable.
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    // Analyze the message
-    const analysisPrompt = `Analyze this therapy message and provide insights. Return ONLY a valid JSON object with no markdown formatting or additional text.
-    Message: ${message}
-    Context: ${JSON.stringify({
-      memory: event.data.memory,
-      goals: event.data.goals,
-    })}
-    
-    Required JSON structure:
-    {
-      "emotionalState": "string",
-      "themes": ["string"],
-      "riskLevel": number,
-      "recommendedApproach": "string",
-      "progressIndicators": ["string"]
-    }`;
+    let analysis: any = {
+      emotionalState: "neutral",
+      themes: [],
+      riskLevel: 0,
+      recommendedApproach: "supportive",
+      progressIndicators: [],
+    };
 
-    const analysisResult = await model.generateContent(analysisPrompt);
-    const analysisText = analysisResult.response.text().trim();
-    const cleanAnalysisText = analysisText
-      .replace(/```json\n|\n```/g, "")
-      .trim();
-    const analysis = JSON.parse(cleanAnalysisText);
+    let response =
+      "I am here with you. I am having temporary trouble reaching my deeper analysis tools right now, but we can still talk. Can you tell me more about what feels most difficult in this moment?";
 
-    logger.info("Message analysis:", analysis);
+    try {
+      const analysisPrompt = `Analyze this therapy message and provide insights. Return ONLY a valid JSON object with no markdown formatting or additional text.
+      Message: ${message}
+      Context: ${JSON.stringify({
+        memory: event.data.memory,
+        goals: event.data.goals,
+      })}
+      
+      Required JSON structure:
+      {
+        "emotionalState": "string",
+        "themes": ["string"],
+        "riskLevel": number,
+        "recommendedApproach": "string",
+        "progressIndicators": ["string"]
+      }`;
 
-    // Generate therapeutic response
-    const responsePrompt = `${event.data.systemPrompt}
-    
-    Based on the following context, generate a therapeutic response:
-    Message: ${message}
-    Analysis: ${JSON.stringify(analysis)}
-    Memory: ${JSON.stringify(event.data.memory)}
-    Goals: ${JSON.stringify(event.data.goals)}
-    
-    Provide a response that:
-    1. Addresses the immediate emotional needs
-    2. Uses appropriate therapeutic techniques
-    3. Shows empathy and understanding
-    4. Maintains professional boundaries
-    5. Considers safety and well-being`;
+      const analysisResult = await model.generateContent(analysisPrompt);
+      const analysisText = analysisResult.response.text().trim();
+      const cleanAnalysisText = analysisText
+        .replace(/```json\n|\n```/g, "")
+        .trim();
+      analysis = JSON.parse(cleanAnalysisText);
 
-    const responseResult = await model.generateContent(responsePrompt);
-    const response = responseResult.response.text().trim();
+      logger.info("Message analysis:", analysis);
 
-    logger.info("Generated response:", response);
+      const responsePrompt = `${event.data.systemPrompt}
+      
+      Based on the following context, generate a therapeutic response:
+      Message: ${message}
+      Analysis: ${JSON.stringify(analysis)}
+      Memory: ${JSON.stringify(event.data.memory)}
+      Goals: ${JSON.stringify(event.data.goals)}
+      
+      Provide a response that:
+      1. Addresses the immediate emotional needs
+      2. Uses appropriate therapeutic techniques
+      3. Shows empathy and understanding
+      4. Maintains professional boundaries
+      5. Considers safety and well-being`;
+
+      const responseResult = await model.generateContent(responsePrompt);
+      response = responseResult.response.text().trim();
+
+      logger.info("Generated response:", response);
+    } catch (modelError) {
+      logger.error("AI generation failed; falling back to supportive response:", modelError);
+    }
 
     // Add message to session history
     session.messages.push({
@@ -209,7 +268,12 @@ export const sendMessage = async (req: Request, res: Response) => {
 export const getSessionHistory = async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
-    const userId = new Types.ObjectId(req.user.id);
+    const rawUserId = getRequestUserId(req);
+    if (!rawUserId || !Types.ObjectId.isValid(rawUserId)) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userId = new Types.ObjectId(rawUserId);
 
     const session = (await ChatSession.findById(
       sessionId
@@ -253,7 +317,12 @@ export const getChatSession = async (req: Request, res: Response) => {
 export const getChatHistory = async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
-    const userId = new Types.ObjectId(req.user.id);
+    const rawUserId = getRequestUserId(req);
+    if (!rawUserId || !Types.ObjectId.isValid(rawUserId)) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userId = new Types.ObjectId(rawUserId);
 
     // Find session by sessionId instead of _id
     const session = await ChatSession.findOne({ sessionId });

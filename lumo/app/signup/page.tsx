@@ -31,7 +31,12 @@ export default function SignupPage() {
       await registerUser(name, email, password);
       router.push("/login");
     } catch (err: any) {
-      setError(err.message || "Signup failed. Please try again.");
+      const message = err?.message || "Signup failed. Please try again.";
+      if (message.toLowerCase().includes("already in use")) {
+        setError("This email is already registered. Please sign in instead.");
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
