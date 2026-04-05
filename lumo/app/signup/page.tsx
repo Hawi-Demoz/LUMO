@@ -28,24 +28,8 @@ export default function SignupPage() {
     }
     setLoading(true);
     try {
-      // Try backend registration first
-      try {
-        await registerUser(name, email, password);
-        router.push("/login");
-        return;
-      } catch (err: any) {
-        console.log("Backend registration failed, using fallback");
-      }
-
-      // Fallback registration - store user locally
-      const fallbackUsers = JSON.parse(localStorage.getItem("fallbackUsers") || "{}");
-      fallbackUsers[email] = { name, email, password };
-      localStorage.setItem("fallbackUsers", JSON.stringify(fallbackUsers));
-      
-      // Auto-login after fallback registration
-      localStorage.setItem("user", JSON.stringify({ _id: Date.now().toString(), name, email }));
-      localStorage.setItem("token", "fallback-token-" + Date.now());
-      router.push("/dashboard");
+      await registerUser(name, email, password);
+      router.push("/login");
     } catch (err: any) {
       setError(err.message || "Signup failed. Please try again.");
     } finally {

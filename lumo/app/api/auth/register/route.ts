@@ -4,7 +4,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const API_URL =
     process.env.BACKEND_API_URL ||
-    "http://localhost:3001";
+    "http://localhost:4001";
 
   try {
     const res = await fetch(`${API_URL}/auth/register`, {

@@ -3,13 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  Heart,
   Menu,
   X,
   MessageCircle,
   HeartPulse,
   LogOut,
-  LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
@@ -17,10 +15,9 @@ import { SignInButton } from "@/components/auth/sign-in-button";
 import { useSession } from "@/lib/contexts/session-context";
 
 export function Header() {
-  const { isAuthenticated, logout, user } = useSession();
+  const { isAuthenticated, logout } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  console.log("Header: Auth state:", { isAuthenticated, user });
   const navItems = [
     { href: "/features", label: "Features" },
     { href: "/about", label: "About Chora" },
@@ -118,15 +115,25 @@ export function Header() {
                 </Link>
               ))}
               {isAuthenticated && (
-                <Button
-                  asChild
-                  className="mt-2 mx-4 gap-2 bg-primary/90 hover:bg-primary"
-                >
-                  <Link href="/dashboard">
-                    <MessageCircle className="w-4 h-4" />
-                    <span>Start Chat</span>
-                  </Link>
-                </Button>
+                <>
+                  <Button
+                    asChild
+                    className="mt-2 mx-4 gap-2 bg-primary/90 hover:bg-primary"
+                  >
+                    <Link href="/dashboard">
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Start Chat</span>
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="mx-4"
+                    onClick={logout}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign out
+                  </Button>
+                </>
               )}
             </nav>
           </div>

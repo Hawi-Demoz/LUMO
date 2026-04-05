@@ -65,7 +65,7 @@ const startServer = async () => {
     }
 
     // Start the server regardless of MongoDB connection
-    const PORT = parseInt(process.env['PORT'] || '3001', 10);
+    const PORT = parseInt(process.env['PORT'] || '4001', 10);
     app.listen(PORT, () => {
       logger.info(`Server is running on port ${PORT}`);
       logger.info(

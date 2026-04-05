@@ -1,22 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
+  const API_URL = process.env.BACKEND_API_URL || "http://localhost:4001";
+  const token = req.headers.get("Authorization");
+
+  if (!token) {
+    return NextResponse.json({ isAuthenticated: false, user: null }, { status: 200 });
+  }
+
   try {
-    // For now, return a mock authenticated session
-    // In a real app, you would validate the session token and return the actual user data
-    return NextResponse.json({
-      isAuthenticated: true,
-      user: {
-        id: "1",
-        name: "Test User",
-        email: "test@example.com",
+    const res = await fetch(`${API_URL}/auth/me`, {
+      headers: {
+        Authorization: token,
       },
     });
+
+    if (!res.ok) {
+      return NextResponse.json({ isAuthenticated: false, user: null }, { status: 200 });
+    }
+
+    const data = await res.json();
+    return NextResponse.json({
+      isAuthenticated: true,
+      user: data.user,
+    });
   } catch (error) {
-    console.error("Error getting auth session:", error);
     return NextResponse.json(
-      { error: "Failed to get auth session" },
-      { status: 500 }
+      { isAuthenticated: false, user: null },
+      { status: 200 }
     );
   }
 }

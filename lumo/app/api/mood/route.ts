@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   const API_URL =
     process.env.BACKEND_API_URL ||
-    "http://localhost:3001";
+    "http://localhost:4001";
   const token = req.headers.get("Authorization");
 
   if (!token) {
